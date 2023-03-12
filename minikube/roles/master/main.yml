@@ -1,0 +1,84 @@
+---
+- hosts: all
+  tasks:
+  - name: Update OS
+    yum:
+      name:
+      - update
+      - upgrade
+      state=present
+      update_cache=yes
+  - name: Install Packages
+      - epel-release
+      - git
+      - libvirt
+      - qemu-kvm
+      - virt-install
+      - virt-top
+      - libguestfs-tools 
+      - bridge-utils
+      - conntrack
+      - socat
+      - wget
+      - git
+      state=present
+      update_cache=yes
+
+  - name: GET Docker Packages
+    uri:
+      url:  'https://get.docker.com -o get-docker.sh'
+      method: GET
+    register: result
+
+  - name: Start Docker Installation
+    shell: sh get-docker.sh
+    notify:
+      - docker status
+
+  - name: Add vagrant user to docker group
+    user:
+      name: vagrant
+      group: docker
+
+  - name: Get Minikube package
+    uri:
+      url: 'https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64'
+      method: GET
+    register: result
+  
+  - name: Change permission of chmod +x minikube-linux-amd64
+    file: dest=minikube-linux-amd64 mode=a+x
+
+  - name: move minikube-linux-amd64 /usr/bin/minikube
+    command: mv minikube-linux-amd64 /usr/bin/minikube
+
+  - name: Get Kubectl package
+    uri:
+      url: 'https://storage.googleapis.com/kubernetes-release/release/v1.23.0/bin/linux/amd64/kubectl'
+      method: GET
+    register: result
+  
+  - name: Change permission
+    file: dest=kubectl mode=a+x
+
+  - name: move kubectl  /usr/bin/
+    command: mv kubectl  /usr/bin/
+
+  - name: Add rule
+    command: echo '1' > /proc/sys/net/bridge/bridge-nf-call-iptables
+
+  - name: start docker services
+    ansible.builtin.service:
+      name: docker
+      state: started
+      enabled: yes 
+  - name: Install Bash-completion
+    yum:
+      name:
+        - bash-completion
+        state=present
+        update_cache=yes
+  - name: Add autocompletion parameter
+    shell: autocompletion.sh
+  - name: start minikube
+    command: su - vagrant -c "minikube start --driver=none --kubernetes-version v1.23.0"

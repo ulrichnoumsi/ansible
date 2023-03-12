@@ -1,0 +1,5 @@
+- hosts: minikube
+  become: yes
+  roles:
+    - { role: master}   
+
